@@ -1,0 +1,40 @@
+---
+title: "MathProject"
+author: "F D"
+date: "26 12 2019"
+output: html_document
+runtime: shiny
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+# Load the packages
+
+```{r}
+library(tidyverse)
+library(readxl)
+library(shiny)
+library(shinythemes)
+library(lubridate)
+```
+
+
+# Welcome to the project for the math class
+
+I will add the cutomer data to my harvest data and weather data and i will try to do a pca (pricipal component analyse), some clustering(k-nearest neightbour) and a linear regression on the data. I want to find some relationsships between selling of a product and the weather or some other relationship i dont know. So first of all i will combine the data into one big data frame. To do that we have to load all the different data and do some data wrangling. 
+
+# Data Wrangling
+
+## Load data
+
+```{r}
+selling <- read_xls("Data/Auszahlungen_2019-07-01_2019-09-30.xls")
+produkt <- read_xls("Data/Verkaufe_pro_Angebot_2019-07-01_2019-09-30.xls")
+customers <- read_xls("Data/Verkaufe_Rechnungen_2019-07-01_2019-09-30.xls")
+weather <- read_delim("Data/produkt_klima_tag_20180517_20191117_02564.txt", ";", escape_double = FALSE, trim_ws = TRUE)
+```
+
+I loaded some data of my customers, my selling in generell and my selling of each product. So the selling data frame is for the generall selling informations. The produkt data frame is for the informations about each product and how often it got sold. The last data frame is called customers and it holds informations about the customers. Where they are from and how much they bought. The last data frame is the weather data frame. It holds the weather information for each day.
+
+## Let's add some weather data to the general selling informations.
