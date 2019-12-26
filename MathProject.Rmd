@@ -30,11 +30,38 @@ I will add the cutomer data to my harvest data and weather data and i will try t
 
 ```{r}
 selling <- read_xls("Data/Auszahlungen_2019-07-01_2019-09-30.xls")
-produkt <- read_xls("Data/Verkaufe_pro_Angebot_2019-07-01_2019-09-30.xls")
+selling_oct 
+product <- read_xls("Data/Verkaufe_pro_Angebot_2019-07-01_2019-09-30.xls")
+product_oct
 customers <- read_xls("Data/Verkaufe_Rechnungen_2019-07-01_2019-09-30.xls")
+customers_oct
 weather <- read_delim("Data/produkt_klima_tag_20180517_20191117_02564.txt", ";", escape_double = FALSE, trim_ws = TRUE)
 ```
 
 I loaded some data of my customers, my selling in generell and my selling of each product. So the selling data frame is for the generall selling informations. The produkt data frame is for the informations about each product and how often it got sold. The last data frame is called customers and it holds informations about the customers. Where they are from and how much they bought. The last data frame is the weather data frame. It holds the weather information for each day.
 
+## Combine the other month with the first
+
+To get the whole data we have to combine all the different month.
+
+```{r}
+
+```
+
+
+## Delete columns which aren't needed
+
+We have to tidy up some columns which are totally useless.
+
+```{r}
+
+```
+
 ## Let's add some weather data to the general selling informations.
+
+Let's add the weather information for the selling days. Maybe there is a correlation between bad weather and bad selling days.
+
+```{r}
+
+```
+
