@@ -29,37 +29,188 @@ I will add the cutomer data to my harvest data and weather data and i will try t
 ## Load data
 
 ```{r}
-selling <- read_xls("Data/Auszahlungen_2019-07-01_2019-09-30.xls")
-selling_oct 
-product <- read_xls("Data/Verkaufe_pro_Angebot_2019-07-01_2019-09-30.xls")
-product_oct
-customers <- read_xls("Data/Verkaufe_Rechnungen_2019-07-01_2019-09-30.xls")
-customers_oct
+selling_q3 <- read_xls("Data/Auszahlungen_2019-07-01_2019-09-30.xls")
+selling_oct <- read_xls("Data/Auszahlungen_2019-10-01_2019-10-31.xls")
+selling_nov <- read_xls("Data/Auszahlungen_2019-11-01_2019-11-30.xls")
+product_q3 <- read_xls("Data/Verkaufe_pro_Angebot_2019-07-01_2019-09-30.xls")
+product_oct <- read_xls("Data/Verkaufe_pro_Angebot_2019-10-01_2019-10-31.xls")
+product_nov <- read_xls("Data/Verkaufe_pro_Angebot_2019-11-01_2019-11-30.xls")
+customers_q3 <- read_xls("Data/Verkaufe_Rechnungen_2019-07-01_2019-09-30.xls")
+customers_oct <- read_xls("Data/Verkaufe_Rechnungen_2019-10-01_2019-10-31.xls")
+customers_nov <- read_xls("Data/Verkaufe_Rechnungen_2019-11-01_2019-11-30.xls")
 weather <- read_delim("Data/produkt_klima_tag_20180517_20191117_02564.txt", ";", escape_double = FALSE, trim_ws = TRUE)
 ```
 
 I loaded some data of my customers, my selling in generell and my selling of each product. So the selling data frame is for the generall selling informations. The produkt data frame is for the informations about each product and how often it got sold. The last data frame is called customers and it holds informations about the customers. Where they are from and how much they bought. The last data frame is the weather data frame. It holds the weather information for each day.
 
-## Combine the other month with the first
+## Combine the other months with the first three
 
-To get the whole data we have to combine all the different month.
+To get the whole data we have to combine all the different months.
 
 ```{r}
+customers <- list(customers_q3, customers_oct, customers_nov) %>%
+  bind_rows()
+product <- list(product_q3, product_oct, product_nov) %>%
+  bind_rows()
+selling <- list(selling_q3, selling_oct, selling_nov) %>%
+  bind_rows()
+```
 
+## Delete the rest
+
+Let's delete the data frames which aren't needed anymore. So the environment is tidied up.
+
+```{r}
+rm(customers_q3, customers_oct, customers_nov, product_q3, product_oct, product_nov, selling_q3, selling_oct, selling_nov)
 ```
 
 
 ## Delete columns which aren't needed
 
-We have to tidy up some columns which are totally useless.
+We have to tidy up some columns which are totally useless or the information is doubled.
 
 ```{r}
+customers <- customers %>%
+  select(-`Summe MwSt.`, -`Nummer der Schwärmerei`, -`Summe netto`)
+product <- product %>%
+  select(-`Summe MwSt.`, -`Summe netto`, -Produktkategorie, -`Produkt Unterkategorie`)
+selling <- selling %>%
+  select(-`Verkäufe - Mehrwertsteuer`, -`Verkäufe - Summe netto`, -`Servicegebühr - Mehrwertsteuersatz 19%`, -`Servicegebühr - wenn der Rechnungsempfänger die MwSt. nicht in Rechnung stellt`, -`Einkäufe - Summe netto`, -`Einkäufe - Mehrwertsteuer`)
+weather <- weather %>%
+  select(-STATIONS_ID, -QN_3, -QN_4, -SHK_TAG, -eor, -SDK)
+```
+
+
+## Replace different product names
+
+Because i changed the product names in november i have to replace some product names so the same products have the same names.
+
+```{r}
+product$Produktname <- product$Produktname %>%
+  str_replace_all("1 Radieschen rot Microgreens unverpackt 40g", "Radieschen rot Microgreens unverpackt (1 × 40 g)")
+product$Produktname <- product$Produktname %>%
+  str_replace_all("1 Kohlrabi rot Microgreens", "Kohlrabi rot Microgreens unverpackt (1 x 40 g)")
+product$Produktname <- product$Produktname %>%
+  str_replace_all("Brokkoli Microgreens unverpackt 40g - 40 g", "Brokkoli Microgreens unverpackt (1 x 40 g)")
+product$Produktname <- product$Produktname %>%
+  str_replace_all("Rote Bete Microgreens - 40 g", "Rote Bete Microgreens unverpackt (1 × 40 g)")
+product$Produktname <- product$Produktname %>%
+  str_replace_all("1 Mizuna Microgreens unverpackt", "Mizuna Microgreens unverpackt (1 x 40 g)")
+product$Produktname <- product$Produktname %>%
+  str_replace_all("1 Bockshornklee Microgreens unverpackt", "Bockshornklee Microgreens unverpackt (1 x 40 g)")
+product$Produktname <- product$Produktname %>%
+  str_replace_all("1 Daikon Rettich unverpackt 40g", "Daikon Rettich unverpackt (1 × 40 g)")
+product$Produktname <- product$Produktname %>%
+  str_replace_all("1 Radieschen rot Microgreens unverpackt 100g", "Radieschen rot Microgreens unverpackt (1 × 100 g)")
+product$Produktname <- product$Produktname %>%
+  str_replace_all("1 Sonnenblumen Microgreens unverpackt 100g", "Sonnenblumen Microgreens unverpackt (1 × 100 g)")
+product$Produktname <- product$Produktname %>%
+  str_replace_all("1 Sonnenblumen Microgreens unverpackt 40g", "Sonnenblumen Microgreens unverpackt (1 × 40 g)")
+product$Produktname <- product$Produktname %>%
+  str_replace_all("20g Koriander Microgreens unverpackt 20g", "Koriander Microgreens unverpackt (1 × 20 g)")
+product$Produktname <- product$Produktname %>%
+  str_replace_all("Erbsen Microgreens unverpackt 40g - 40 g", "Erbsen Microgreens unverpackt (1 × 40 g)")
+product$Produktname <- product$Produktname %>%
+  str_replace_all("Senf Microgreens unverpackt 40g (1 × 40 g)", "Senf Microgreens unverpackt (1 × 40 g)")
+```
+
+
+## Test of product names
+
+```{r}
+product %>%
+  distinct(Produktname) %>%
+  arrange(Produktname)
+```
+
+We see that there is still one name doubled. But i could't find the error so we have to handle this.
+
+## Lets replace different offernumbers
+
+Here we have the same problem like for the productnames. So we have to replace some numbers that we get a equal number for the same product. If we don't do that we have lot's of different numbers for the same product and the analyse does't work very well.
+
+```{r}
+product$Angebotsnummer <- product$Angebotsnummer %>%
+  str_replace_all("BMICR.fdaf.1", "BMU40.g3va.1")
+product$Angebotsnummer <- product$Angebotsnummer %>%
+  str_replace_all("DRUNV.fino.1", "DRU40.g3vj.1")
+product$Angebotsnummer <- product$Angebotsnummer %>%
+  str_replace_all("RROT.f9et.1", "RRMU4.g3vu.1")
+product$Angebotsnummer <- product$Angebotsnummer %>%
+  str_replace_all("RRU10.fpiv.1", "RRMU4.g3vu.2")
+product$Angebotsnummer <- product$Angebotsnummer %>%
+  str_replace_all("RRMU1.g3vr.2", "RRMU4.g3vu.2")
+product$Angebotsnummer <- product$Angebotsnummer %>%
+  str_replace_all("SENF.f9ew.1", "SMU40.g3vw.1")
+product$Angebotsnummer <- product$Angebotsnummer %>%
+  str_replace_all("SMUNV.finu.1", "SMU40.g3w1.1")
+product$Angebotsnummer <- product$Angebotsnummer %>%
+  str_replace_all("SMU10.g3vz.1", "SMU40.g3w1.2")
+product$Angebotsnummer <- product$Angebotsnummer %>%
+  str_replace_all("SMU10.foby.1", "SMU40.g3w1.2")
+
 
 ```
 
-## Let's add some weather data to the general selling informations.
+## Test the offernumbers
 
-Let's add the weather information for the selling days. Maybe there is a correlation between bad weather and bad selling days.
+```{r}
+product %>%
+  distinct(Angebotsnummer, Produktname) %>%
+  arrange(Produktname)
+```
+
+As you can see we have now only one offernumber for one product.
+
+## Use lubridate to manipulate the date column
+
+We have to have equal date columns to join the selling data with the weather data. So i use lubridate to change the date column to make easier to join the data.
+
+```{r}
+# customers$`Datum der Verteilung` <- ymd_hms(customers$`Datum der Verteilung`) maybe we have to extract only the date
+weather$MESS_DATUM <- ymd(weather$MESS_DATUM)
+
+customers <- customers %>%
+  mutate(date = date(customers$`Datum der Verteilung`))
+product <- product %>%
+  mutate(date = date(product$`Datum der Verteilung`))
+selling <- selling %>%
+  mutate(date = date(selling$`Datum der Verteilung`))
+weather <- weather %>%
+  mutate(date = date(weather$MESS_DATUM))
+```
+
+
+## Let's add some weather data to the selling informations.
+
+Let's add the weather information for the selling days. Maybe there is a correlation between bad weather and bad selling days. But we will join it in a new data frame so we can analyse the date with weather informations and without.
+
+```{r}
+customers_weather <- left_join(customers, weather, by = "date") 
+# by = c("column1", "column2") so i don't have to create a new column with is equal in every data frame
+product_weather <- left_join(product, weather, by = "date")
+selling_weather <- left_join(selling, weather, by = "date")
+```
+
+
+## Let's have a look on the products
+
+```{r}
+product %>%
+  group_by(Produktname) %>%
+  summarise(Verkauft = sum(Menge), Erloes = sum(Gesamtbrutto)) %>%
+  ggplot(aes(x = reorder(Produktname, Erloes), y = Erloes, fill = Erloes)) +
+  geom_col() +
+  coord_flip()
+```
+
+# Statistical analysis
+
+I will try some methods we discussed in class on my data. After that I will look on the result and decide what to do next. Maybe we will get some nice dependencies or maybe not. First i will do some clustering with kmeans and k-Nearest Neighbour. After that i will try a principle component analysis and at least a linear regression. Hopefully i will learn something about my customers and we will get some interesting insights.
+
+## kmeans clustering
+
+Let's try to find some interesting clusters to discribe customer groups or something else.
 
 ```{r}
 
