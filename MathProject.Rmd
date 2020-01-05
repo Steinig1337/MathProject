@@ -2,7 +2,9 @@
 title: "MathProject"
 author: "F D"
 date: "26 12 2019"
-output: html_document
+output:
+  rmdformats::readthedown:
+    highlight: kate
 runtime: shiny
 ---
 
@@ -38,10 +40,10 @@ product_nov <- read_xls("Data/Verkaufe_pro_Angebot_2019-11-01_2019-11-30.xls")
 customers_q3 <- read_xls("Data/Verkaufe_Rechnungen_2019-07-01_2019-09-30.xls")
 customers_oct <- read_xls("Data/Verkaufe_Rechnungen_2019-10-01_2019-10-31.xls")
 customers_nov <- read_xls("Data/Verkaufe_Rechnungen_2019-11-01_2019-11-30.xls")
-weather <- read_delim("Data/produkt_klima_tag_20180517_20191117_02564.txt", ";", escape_double = FALSE, trim_ws = TRUE)
+weather <- read_delim("Data/produkt_klima_tag_20180704_20200104_02564.txt", ";", escape_double = FALSE, trim_ws = TRUE)
 ```
 
-I loaded some data of my customers, my selling in generell and my selling of each product. So the selling data frame is for the generall selling informations. The produkt data frame is for the informations about each product and how often it got sold. The last data frame is called customers and it holds informations about the customers. Where they are from and how much they bought. The last data frame is the weather data frame. It holds the weather information for each day.
+I loaded some data of my customers, my selling in generell and my selling of each product. So the selling data frame is for the generall selling informations. The produkt data frame is for the informations about each product and how often it got sold. The last data frame is called customers and it holds informations about the customers. Where they are from and how much they bought. And i forgot the weather data frame. It holds the weather information for each day.
 
 ## Combine the other months with the first three
 
@@ -123,7 +125,7 @@ product %>%
   arrange(Produktname)
 ```
 
-We see that there is still one name doubled. But i could't find the error so we have to handle this.
+We see that there is still one name doubled. But i could't find the error so we have to use it like this.
 
 ## Lets replace different offernumbers
 
@@ -208,11 +210,185 @@ product %>%
 
 I will try some methods we discussed in class on my data. After that I will look on the result and decide what to do next. Maybe we will get some nice dependencies or maybe not. First i will do some clustering with kmeans and k-Nearest Neighbour. After that i will try a principle component analysis and at least a linear regression. Hopefully i will learn something about my customers and we will get some interesting insights.
 
+
+
 ## kmeans clustering
 
-Let's try to find some interesting clusters to discribe customer groups or something else.
+Let's try to find some interesting clusters to discribe customer groups or something else. First i will try to get some clusters with the combined customer_weather data. We have to use numeric columns for clusters. So we have to explicid say with columns are used for the clustering. So let's try every column which is numeric. To view the clusters we can use ggplot with a 2d plot.
 
 ```{r}
+km1 <- kmeans(x = customers_weather[,c("Gesamtbrutto", "TXK", "TNK", "FX", "FM", "RSK", "RSKF", "NM", "VPM", "PM", "TMK", "UPM", "TGK")], centers = 2)
 
+df1 <- customers_weather
+
+df1 <- bind_cols(df1, km = as.factor(km1$cluster))
+
+df1 %>% 
+  ggplot() +
+  geom_point(aes(Gesamtbrutto, TNK, color = km)) +
+  geom_point(data = as.data.frame(km1$centers), aes(Gesamtbrutto, TNK), size = 3)
 ```
 
+We can see that this model doens't work very well. Lets try the others.
+
+```{r}
+km2 <- kmeans(x = product_weather[,c("Einzelpreis netto", "Menge", "Gesamtbrutto", "TXK", "TNK", "FX", "FM", "RSK", "RSKF", "NM", "VPM", "PM", "TMK", "UPM", "TGK")], centers = 2)
+
+df2 <- product_weather
+
+df2 <- bind_cols(df2, km = as.factor(km2$cluster))
+
+df2 %>% 
+  ggplot() +
+  geom_point(aes(Gesamtbrutto, TNK, color = km)) +
+  geom_point(data = as.data.frame(km2$centers), aes(Gesamtbrutto, TNK), size = 3)
+```
+
+Same visualization as the plot before.
+
+```{r}
+km3 <- kmeans(x = selling_weather[,c("Verkäufe - Gesamtbetrag", "Einkäufe - Gesamtbetrag", "Gesamtsumme", "TXK", "TNK", "FX", "FM", "RSK", "RSKF", "NM", "VPM", "PM", "TMK", "UPM", "TGK")], centers = 3)
+
+df3 <- selling_weather
+
+df3 <- bind_cols(df3, km = as.factor(km3$cluster))
+
+df3 %>% 
+  ggplot() +
+  geom_point(aes(Gesamtsumme, TNK, color = km)) +
+  geom_point(data = as.data.frame(km3$centers), aes(Gesamtsumme, TNK), size = 3)
+```
+
+This doesn't work really well. Lets try the factoextra package. Maybe we can find something in there which helps and make it more convinient.
+
+## Factoextra package
+
+### Load package
+
+```{r}
+library(FactoMineR)
+library(factoextra)
+```
+
+
+### PCA
+
+Let's do a principle component analyses to extract only the needed variables to explain 85-90 percent of the varriance.
+
+```{r}
+df1_pca <- PCA(df1[,c("Gesamtbrutto", "TXK", "TNK", "FX", "FM", "RSK", "RSKF", "NM", "VPM", "PM", "TMK", "UPM", "TGK")],  graph = FALSE)
+
+```
+ 
+ Let's have a look on the eigenvalues and eigenvariances.
+ 
+```{r}
+get_eig(df1_pca)
+```
+  
+  We can see that we can fit with 86 % if we only choose 5 dimensions. Let's visualize it to have a better look at it.
+  
+```{r}
+fviz_screeplot(df1_pca, addlabels = TRUE, ylim = c(0, 50))
+```
+  
+  Let's look into the variables. Which one explained most of the variance. Let's extract the results for the variables.
+  
+```{r}
+var <- get_pca_var(df1_pca)
+var
+```
+  
+We can print the head of this atributes. First the coordinates, second the contribution.
+
+```{r}
+head(var$coord)
+```
+
+The coordinates explain the direction and the contribution explained the length of the arrows
+
+```{r}
+head(var$contrib)
+```
+
+Let's visualize it.
+
+```{r}
+fviz_pca_var(df1_pca, col.var = "black")
+```
+
+Or with this one.
+
+```{r}
+library("corrplot")
+corrplot(var$cos2, is.corr=FALSE)
+```
+
+We can see that the tempretures\
+(TXK = Days maximum of airtemperatur in 2m hight in °c,\
+ TNK = Days minimum of airtemperatur in 2m hight in °c,\
+ TMK = Days mean temperature,\
+ TGK = Days minimum of airtemperature in 5 cm highth)\
+ and the mean of days relative humidity = UPM and the mean of days vapor pressure = VPM explained most of the first dimension.
+ So we have to delete some of the columns to handle the data better. At least let's try the bipolar plot.
+ 
+```{r}
+fviz_pca_biplot(df1_pca)
+```
+ 
+ Now we can see all the different customers and which variable fit to the customers. Each group of points are one selling day with its explicit weather and each point are one customer of this selling day which bought a different amount. We should now minimize the dimensions based on our pca to get a easier handling for the data. 
+ 
+### Clustering
+ 
+ Let's try to cluster again. But this time we will scale our data and we will use factoextra package.
+ 
+```{r}
+# 1. Loading and preparing data
+df1_scaled <- scale(df1[,c("Gesamtbrutto", "TXK", "TNK", "FX", "FM", "RSK", "RSKF", "NM", "VPM", "PM", "TMK", "UPM", "TGK")])
+# 2. Find the optimal number of clusters
+fviz_nbclust(df1_scaled, kmeans, method = "gap_stat")
+# 3. Compute k-means
+km1_scaled <- kmeans(scale(df1[,c("Gesamtbrutto", "TXK", "TNK", "FX", "FM", "RSK", "RSKF", "NM", "VPM", "PM", "TMK", "UPM", "TGK")]), 5, nstart = 25)
+# 4. Visualize
+fviz_cluster(km1_scaled, data = df1_scaled,
+             palette = c("#00AFBB","#2E9FDF", "#E7B800", "#FC4E07", "#000000"),
+             ggtheme = theme_minimal(),
+             main = "kMeans Clustering"
+             )
+```
+ 
+ It looks like we have clustered the days with the same weather. Let's add these clusters to the original data.
+ 
+```{r}
+df1 <- bind_cols(df1, km_right = as.factor(km1_scaled$cluster))
+```
+ 
+ Let's plot some information with the addional cluster column.
+ 
+```{r}
+df1 %>%
+  distinct(Name, Vorname, Postleitzahl, km_right) %>%
+  count(Postleitzahl)
+
+df1 %>%
+  distinct(Name, Vorname, Postleitzahl, km_right) %>%
+  count(km_right)
+
+df1 %>%
+  group_by(date, km_right) %>%
+  summarise(verdient = sum(Gesamtbrutto)) %>%
+  ggplot(aes(x = date, y = verdient, colour = km_right )) +
+  geom_point()
+  
+```
+ 
+ I couldn't find some good plot with this additional cluster information.
+ 
+```{r}
+df1 %>%
+  group_by(Name, Vorname) %>%
+  summarise(ausgegeben = sum(Gesamtbrutto)) %>%
+  arrange(desc(ausgegeben))
+```
+ 
+ I come to an end and my knowledge out of this analyses is that there no dependencies between the weather and the customers because lots of customers had serveral clusters. I think that the amount of data could be more. I should try this analyses on my selling data. Maybe I can find there some dependencies between overall selling and weather. And there should be a method to weight some variables more than others. 
