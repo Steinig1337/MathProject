@@ -392,3 +392,329 @@ df1 %>%
 ```
  
  I come to an end and my knowledge out of this analyses is that there no dependencies between the weather and the customers because lots of customers had serveral clusters. I think that the amount of data could be more. I should try this analyses on my selling data. Maybe I can find there some dependencies between overall selling and weather. And there should be a method to weight some variables more than others. 
+ 
+# Statistical analysis app
+
+Now i will try to program an analysis app for all datasets. So this app needs some chooseable datasets and than there have to be some options for the analysis. Let's start and see how far we get.
+
+## Load packages
+
+```{r}
+library(plotly)
+library(shiny)
+library(DT)
+library(gridExtra)
+```
+
+## Program an application
+
+```{r}
+analysis <- c("pca", "k-means")
+
+shinyApp(
+  
+ui <- fluidPage(
+  titlePanel("Interactive analysis application"),
+  sidebarLayout(
+    sidebarPanel(
+      # conditionalPanel(
+      #   'input.dataset === "customers_weather"',
+        selectInput("select1", "Select your analysis", analysis),
+        #sliderInput("slider1", label = h3("Choose your number of clusters"), min = 1, max = 15, value = 2)
+        uiOutput("ui1")
+      # ),
+      # conditionalPanel(
+      #   'input.dataset === "selling_weather"',
+      #   selectInput("select1", "Select your analysis", analysis),
+      #   #sliderInput("slider1", label = h3("Choose your number of clusters"), min = 1, max = 15, value = 2)
+      #   uiOutput("ui2")
+      # ),
+      # conditionalPanel(
+      #   'input.dataset === "product_weather"',
+      #   selectInput("select1", "Select your analysis", analysis),
+      #   #sliderInput("slider1", label = h3("Choose your number of clusters"), min = 1, max = 15, value = 2)
+      #   uiOutput("ui3")
+      # )
+    ),
+    
+      # Mainpanel with 3 different tabs and plots
+    
+    mainPanel(
+      tabsetPanel(
+        id = "dataset",
+        tabPanel(
+          "customers_weather",
+          id = "customers_weather",
+          dataTableOutput("table1"),
+          plotlyOutput("customers_plot1"),
+          plotlyOutput("customers_plot2"),
+          plotOutput("customers_plot3")
+        ),
+        tabPanel(
+          "selling_weather",
+          id = "selling_weather",
+          dataTableOutput("table2"),
+          plotlyOutput("selling_plot1"),
+          plotlyOutput("selling_plot2"),
+          plotOutput("selling_plot3")
+        ),
+        tabPanel(
+          "product_weather",
+          id = "product_weather",
+          dataTableOutput("table3"),
+          plotlyOutput("product_plot1"),
+          plotlyOutput("product_plot2"),
+          plotOutput("product_plot3")
+        )
+      )
+    )
+    
+  )
+  
+),
+
+server <- function(input, output, session) {
+  
+ 
+    # reactive ui function which expant more options if you change the analysis
+  
+  output$ui1 <- renderUI({
+    if (is.null(input$select1))
+      return()
+    switch (input$select1,
+      "pca" = NULL,
+      "k-means" = sliderInput("slider1", label = h3("Choose your number of clusters"), min = 1, max = 15, value = 2)
+    )
+  })
+  
+    # the reactive table switcher which switches the data sets if you switch the tabs
+    # it worked but only without the reactive ui function
+  
+  table_switcher <- reactive({
+    switch (input$dataset,
+      "customers_weather" = datatable(customers_weather),
+      "selling_weather" = datatable(selling_weather),
+      "product_weather" = datatable(product_weather)
+    )
+  })
+  
+    # some tries to find the error
+  
+  # output$ui2 <- renderUI({
+  #   if (is.null(input$select1))
+  #     return()
+  #   switch (input$select1,
+  #     "pca" = NULL,
+  #     "k-means" = sliderInput("slider1", label = h3("Choose your number of clusters"), min = 1, max = 15, value = 2)
+  #   )
+  # })
+  # output$ui3 <- renderUI({
+  #   if (is.null(input$select1))
+  #     return()
+  #   switch (input$select1,
+  #     "pca" = NULL,
+  #     "k-means" = sliderInput("slider1", label = h3("Choose your number of clusters"), min = 1, max = 15, value = 2)
+  #   )
+  # })  
+  
+    # reactive functions for the customers data analysis
+    # it shows different plots dependend on what you have choosen
+    # you could do it more compact with a switch function wich is based on the tabs you choose
+    # so you would only need 3 reactive switch functions for the three plots and 3 switch functions for the 3 different data sets instead of 9 functions
+  
+  switcher1 <- reactive({
+    switch (input$select1,
+      "pca" = {
+        pca_cw <- PCA(customers_weather[,c("Gesamtbrutto", "TXK", "TNK", "FX", "FM", "RSK", "RSKF", "NM", "VPM", "PM", "TMK", "UPM", "TGK")],  graph = FALSE)
+        fviz_screeplot(pca_cw, addlabels = TRUE, ylim = c(0, 50))
+      },
+      "k-means" = {
+        customers_weather_scaled <- scale(customers_weather[,c("Gesamtbrutto", "TXK", "TNK", "FX", "FM", "RSK", "RSKF", "NM", "VPM", "PM", "TMK", "UPM", "TGK")])
+        fviz_nbclust(customers_weather_scaled, kmeans, method = "gap_stat")
+      }
+    )
+  })
+  
+  switcher2 <- reactive({
+    switch (input$select1,
+      "pca" = {
+        pca_cw <- PCA(customers_weather[,c("Gesamtbrutto", "TXK", "TNK", "FX", "FM", "RSK", "RSKF", "NM", "VPM", "PM", "TMK", "UPM", "TGK")],  graph = FALSE)
+        fviz_pca_var(pca_cw, col.var = "black")
+      },
+      "k-means" = {
+        customers_weather_scaled <- scale(customers_weather[,c("Gesamtbrutto", "TXK", "TNK", "FX", "FM", "RSK", "RSKF", "NM", "VPM", "PM", "TMK", "UPM", "TGK")])
+        km1_scaled <- kmeans(scale(customers_weather[,c("Gesamtbrutto", "TXK", "TNK", "FX", "FM", "RSK", "RSKF", "NM", "VPM", "PM", "TMK", "UPM", "TGK")]), input$slider1, nstart = 25)
+        fviz_cluster(km1_scaled, data = customers_weather_scaled,
+                     ggtheme = theme_minimal(),
+                     main = "kMeans Clustering"
+                     )
+      }
+    )
+  })
+  
+  switcher3 <- reactive({
+    switch (input$select1,
+      "pca" = {
+        pca_cw <- PCA(customers_weather[,c("Gesamtbrutto", "TXK", "TNK", "FX", "FM", "RSK", "RSKF", "NM", "VPM", "PM", "TMK", "UPM", "TGK")],  graph = FALSE)
+        var_cw <- get_pca_var(pca_cw)
+        corrplot(var_cw$cos2, is.corr=FALSE)
+      },
+      "k-means" = NULL
+    )
+  })
+  
+    # reactive functions for the selling data analysis
+    # it shows different plots dependend on what you have choosen
+  
+  switcher4 <- reactive({
+    switch (input$select1,
+      "pca" = {
+        pca_sw <- PCA(selling_weather[,c("Verkäufe - Gesamtbetrag", "Einkäufe - Gesamtbetrag", "Gesamtsumme", "TXK", "TNK", "FX", "FM", "RSK", "RSKF", "NM", "VPM", "PM", "TMK", "UPM", "TGK")],  graph = FALSE)
+        fviz_screeplot(pca_sw, addlabels = TRUE, ylim = c(0, 50))
+      },
+      "k-means" = {
+        selling_weather_scaled <- scale(selling_weather[,c("Verkäufe - Gesamtbetrag", "Einkäufe - Gesamtbetrag", "Gesamtsumme", "TXK", "TNK", "FX", "FM", "RSK", "RSKF", "NM", "VPM", "PM", "TMK", "UPM", "TGK")])
+        fviz_nbclust(selling_weather_scaled, kmeans, method = "gap_stat")
+      }
+    )
+  })
+  
+  switcher5 <- reactive({
+    switch (input$select1,
+      "pca" = {
+        pca_sw <- PCA(selling_weather[,c("Verkäufe - Gesamtbetrag", "Einkäufe - Gesamtbetrag", "Gesamtsumme", "TXK", "TNK", "FX", "FM", "RSK", "RSKF", "NM", "VPM", "PM", "TMK", "UPM", "TGK")],  graph = FALSE)
+        fviz_pca_var(pca_sw, col.var = "black")
+      },
+      "k-means" = {
+        selling_weather_scaled <- scale(selling_weather[,c("Verkäufe - Gesamtbetrag", "Einkäufe - Gesamtbetrag", "Gesamtsumme", "TXK", "TNK", "FX", "FM", "RSK", "RSKF", "NM", "VPM", "PM", "TMK", "UPM", "TGK")])
+        km2_scaled <- kmeans(scale(selling_weather[,c("Verkäufe - Gesamtbetrag", "Einkäufe - Gesamtbetrag", "Gesamtsumme", "TXK", "TNK", "FX", "FM", "RSK", "RSKF", "NM", "VPM", "PM", "TMK", "UPM", "TGK")]), input$slider1, nstart = 25)
+        fviz_cluster(km2_scaled, data = selling_weather_scaled,
+                     ggtheme = theme_minimal(),
+                     main = "kMeans Clustering"
+                     )
+      }
+    )
+  })
+  
+  switcher6 <- reactive({
+    switch (input$select1,
+      "pca" = {
+        pca_sw <- PCA(selling_weather[,c("Verkäufe - Gesamtbetrag", "Einkäufe - Gesamtbetrag", "Gesamtsumme", "TXK", "TNK", "FX", "FM", "RSK", "RSKF", "NM", "VPM", "PM", "TMK", "UPM", "TGK")],  graph = FALSE)
+        var_sw <- get_pca_var(pca_sw)
+        corrplot(var_sw$cos2, is.corr=FALSE)
+      },
+      "k-means" = NULL
+    )
+  })
+  
+    # reactive functions for the product data analysis
+    # it shows different plots dependend on what you have choosen
+  
+  switcher7 <- reactive({
+    switch (input$select1,
+      "pca" = {
+        pca_pw <- PCA(product_weather[,c("Einzelpreis netto", "Menge", "Gesamtbrutto", "TXK", "TNK", "FX", "FM", "RSK", "RSKF", "NM", "VPM", "PM", "TMK", "UPM", "TGK")],  graph = FALSE)
+        fviz_screeplot(pca_pw, addlabels = TRUE, ylim = c(0, 50))
+      },
+      "k-means" = {
+        product_weather_scaled <- scale(product_weather[,c("Gesamtbrutto", "TXK", "TNK", "FX", "FM", "RSK", "RSKF", "NM", "VPM", "PM", "TMK", "UPM", "TGK")])
+        fviz_nbclust(product_weather_scaled, kmeans, method = "gap_stat")
+      }
+    )
+  })
+  
+  switcher8 <- reactive({
+    switch (input$select1,
+      "pca" = {
+        pca_pw <- PCA(product_weather[,c("Einzelpreis netto", "Menge", "Gesamtbrutto", "TXK", "TNK", "FX", "FM", "RSK", "RSKF", "NM", "VPM", "PM", "TMK", "UPM", "TGK")],  graph = FALSE)
+        fviz_pca_var(pca_pw, col.var = "black")
+      },
+      "k-means" = {
+        product_weather_scaled <- scale(product_weather[,c("Einzelpreis netto", "Menge", "Gesamtbrutto", "TXK", "TNK", "FX", "FM", "RSK", "RSKF", "NM", "VPM", "PM", "TMK", "UPM", "TGK")])
+        km3_scaled <- kmeans(scale(product_weather[,c("Einzelpreis netto", "Menge", "Gesamtbrutto", "TXK", "TNK", "FX", "FM", "RSK", "RSKF", "NM", "VPM", "PM", "TMK", "UPM", "TGK")]), input$slider1, nstart = 25)
+        fviz_cluster(km3_scaled, data = product_weather_scaled,
+                     ggtheme = theme_minimal(),
+                     main = "kMeans Clustering"
+                     )
+      }
+    )
+  })
+  
+  switcher9 <- reactive({
+    switch (input$select1,
+      "pca" = {
+        pca_pw <- PCA(product_weather[,c("Einzelpreis netto", "Menge", "Gesamtbrutto", "TXK", "TNK", "FX", "FM", "RSK", "RSKF", "NM", "VPM", "PM", "TMK", "UPM", "TGK")],  graph = FALSE)
+        var_pw <- get_pca_var(pca_pw)
+        corrplot(var_pw$cos2, is.corr=FALSE)
+      },
+      "k-means" = NULL
+    )
+  })
+  
+    # output of the data tables in with a reactive function
+  
+  output$table <- renderDataTable({
+    table_switcher()
+  })
+  
+    # Output of the data tables, you could use it as an input to do other stuff
+    # i tried to use only one function but it doesn't worked very well
+  
+  output$table1 <- renderDataTable({
+    datatable(customers_weather)
+  })
+  output$table2 <- renderDataTable({
+    datatable(selling_weather)
+  })
+  output$table3 <- renderDataTable({
+    datatable(product_weather)
+  })
+  
+    # output of the customers analysis
+    # in there is a function which swiches between pca and cluster analysis
+  
+  output$customers_plot1 <- renderPlotly({
+    switcher1()
+  })
+  output$customers_plot2 <- renderPlotly({
+    switcher2()
+  })
+    output$customers_plot3 <- renderPlot({
+    switcher3()
+  })
+    
+    # i tried to do it reactive with a function so i dont have to use 9 outputs but it didn't work
+    # output of the selling analysis
+    # in there is a function which swiches between pca and cluster analysis
+    
+  output$selling_plot1 <- renderPlotly({
+    switcher4()
+  })
+  output$selling_plot2 <- renderPlotly({
+    switcher5()
+  })
+    output$selling_plot3 <- renderPlot({
+    switcher6()
+  })
+    
+    # output of the product analysis
+    # in there is a function which swiches between pca and cluster analysis
+    
+  output$product_plot1 <- renderPlotly({
+    switcher7()
+  })
+  output$product_plot2 <- renderPlotly({
+    switcher8()
+  })
+    output$product_plot3 <- renderPlot({
+    switcher9()
+  })
+  
+},
+options = list(height = 1500)
+)
+```
+
+## Reflection
+
+The application is nice and it shows you easylie the results of this two methods. Now i could implement some more methods and options. For example some different elbow methods, different clustering, the number of iterations or a complete new method like the linear regression. However it took some hours to type this code. I would be really happy if i could get the code smaller and more compressed but that doesn't worked out well. You can overview the results and see that there some variables with i could delete because there variance is really low. To see some informations out of the clustering we have to do some more plots with different questionaries. The other two data sets had different cluster and maybe there are some good insights in the clustering. To get relevant information out of unsorted and not explored data you always have to offer some time to find the right questions and to get the results. I think if i offer one or two more weeks into this project i could find some interresting informations.
