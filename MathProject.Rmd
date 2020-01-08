@@ -13,7 +13,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 # Load the packages
 
-```{r}
+```{r include=FALSE}
 library(tidyverse)
 library(readxl)
 library(shiny)
@@ -21,10 +21,17 @@ library(shinythemes)
 library(lubridate)
 ```
 
+# Executive summery
+
+
 
 # Welcome to the project for the math class
 
-I will add the cutomer data to my harvest data and weather data and i will try to do a pca (pricipal component analyse), some clustering(k-nearest neightbour) and a linear regression on the data. I want to find some relationsships between selling of a product and the weather or some other relationship i dont know. So first of all i will combine the data into one big data frame. To do that we have to load all the different data and do some data wrangling. 
+I will add my customer data to the weather data and i will try to do a pca (pricipal component analyse), some clustering(kmeans, k-nearest neightbour) and a linear regression on the data. I want to find some relationsships between selling of a product and the weather or some other relationship i dont know. So first of all i will combine the data into one big data frame. To do that we have to load all the different data and do some data wrangling. 
+
+## Questions
+
+
 
 # Data Wrangling
 
@@ -201,7 +208,7 @@ selling_weather <- left_join(selling, weather, by = "date")
 product %>%
   group_by(Produktname) %>%
   summarise(Verkauft = sum(Menge), Erloes = sum(Gesamtbrutto)) %>%
-  ggplot(aes(x = reorder(Produktname, Erloes), y = Erloes, fill = Erloes)) +
+  ggplot(aes(x = reorder(Produktname, Erloes), y = Verkauft, fill = Erloes)) +
   geom_col() +
   coord_flip()
 ```
@@ -265,9 +272,10 @@ This doesn't work really well. Lets try the factoextra package. Maybe we can fin
 
 ### Load package
 
-```{r}
+```{r include=FALSE}
 library(FactoMineR)
 library(factoextra)
+library(corrplot)
 ```
 
 
@@ -320,7 +328,6 @@ fviz_pca_var(df1_pca, col.var = "black")
 Or with this one.
 
 ```{r}
-library("corrplot")
 corrplot(var$cos2, is.corr=FALSE)
 ```
 
@@ -340,7 +347,7 @@ fviz_pca_biplot(df1_pca)
  
 ### Clustering
  
- Let's try to cluster again. But this time we will scale our data and we will use factoextra package.
+ Let's try to cluster again. But this time we will scale our data and we will use factoextra package. Here without using the results of the pca.
  
 ```{r}
 # 1. Loading and preparing data
@@ -391,7 +398,50 @@ df1 %>%
   arrange(desc(ausgegeben))
 ```
  
- I come to an end and my knowledge out of this analyses is that there no dependencies between the weather and the customers because lots of customers had serveral clusters. I think that the amount of data could be more. I should try this analyses on my selling data. Maybe I can find there some dependencies between overall selling and weather. And there should be a method to weight some variables more than others. 
+ Now i try to look at the average of the attributes of a cluster. Maybe we can define the clusters.
+ 
+```{r}
+df1 %>%
+  group_by(km_right) %>%
+  summarize(avg_Gesamtbrutto = mean(Gesamtbrutto), avg_FX = mean(FX), avg_FM = mean(FM), avg_RSK = mean(RSK), avg_RSKF = mean(RSKF), avg_NM = mean(NM), avg_VPM = mean(VPM), avg_PM = mean(PM), avg_TMK = mean(TMK), avg_UPM = mean(UPM), avg_TXK = mean(TXK), avg_TNK = mean(TNK), avg_TGK = mean(TGK))
+```
+ 
+ 
+ I come to an end and my knowledge out of this analyses is that there no dependencies between the weather and the customers because lots of customers had serveral clusters. I think that the amount of data could be more. I should try this analyses on my selling data. Maybe I can find there some dependencies between overall selling and weather. And there should be a method to weight some variables more than others. We can see in the table above that we get 5 clusters. They differences in temperature and humidity. Let's try to use our result out of the pca to minimalize the attributes. So it is more convinient and easier to interpretate.
+ 
+```{r}
+# 1. Loading and preparing data
+df1_scaled <- scale(df1[,c("Gesamtbrutto", "TXK", "TNK", "VPM", "TMK", "UPM", "TGK")])
+# 2. Find the optimal number of clusters
+fviz_nbclust(df1_scaled, kmeans, method = "gap_stat")
+fviz_nbclust(df1_scaled, kmeans, method = "wss")
+# 3. Compute k-means
+km1_scaled <- kmeans(scale(df1[,c("Gesamtbrutto", "TXK", "TNK", "VPM", "TMK", "UPM", "TGK")]), 4, nstart = 25)
+# 4. Visualize
+fviz_cluster(km1_scaled, data = df1_scaled,
+             palette = c("#00AFBB","#2E9FDF", "#E7B800", "#FC4E07"),
+             ggtheme = theme_minimal(),
+             main = "kMeans Clustering"
+             )
+
+```
+ 
+ Add this clusters to the table.
+ 
+```{r}
+df1 <- bind_cols(df1, km_right2 = as.factor(km1_scaled$cluster))
+```
+ 
+  Let's have a look on the average values.
+ 
+```{r}
+table1 <- df1 %>%
+  group_by(km_right2) %>%
+  summarize(avg_Gesamtbrutto = mean(Gesamtbrutto), avg_VPM = mean(VPM), avg_TMK = mean(TMK), avg_UPM = mean(UPM), avg_TXK = mean(TXK), avg_TNK = mean(TNK), avg_TGK = mean(TGK))
+
+DT::datatable(table1)
+```
+ 
  
 # Statistical analysis app
 
@@ -399,7 +449,7 @@ Now i will try to program an analysis app for all datasets. So this app needs so
 
 ## Load packages
 
-```{r}
+```{r include=FALSE}
 library(plotly)
 library(shiny)
 library(DT)
@@ -717,4 +767,4 @@ options = list(height = 1500)
 
 ## Reflection
 
-The application is nice and it shows you easylie the results of this two methods. Now i could implement some more methods and options. For example some different elbow methods, different clustering, the number of iterations or a complete new method like the linear regression. However it took some hours to type this code. I would be really happy if i could get the code smaller and more compressed but that doesn't worked out well. You can overview the results and see that there some variables with i could delete because there variance is really low. To see some informations out of the clustering we have to do some more plots with different questionaries. The other two data sets had different cluster and maybe there are some good insights in the clustering. To get relevant information out of unsorted and not explored data you always have to offer some time to find the right questions and to get the results. I think if i offer one or two more weeks into this project i could find some interresting informations.
+The application is nice and it shows you easiely the results of this two methods. Now i could implement some more methods and options. For example some different elbow methods, different clustering, the number of iterations or a complete new method like the linear regression. However, it tooks some hours to type this code. I would be really happy if i could get the code smaller and more compressed but that doesn't worked out well. You can overview the results and see that there some variables with i could delete because there variance is really low. To see some informations out of the clustering we have to do some more plots with different questionaries. The other two data sets had different cluster and maybe there are some good insights in the clustering. To get relevant information out of unsorted and not explored data you always have to offer some time to find the right questions and to get the results. I think if i offer one or two more weeks into this project i could find some interresting informations.
