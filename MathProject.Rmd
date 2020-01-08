@@ -21,7 +21,58 @@ library(shinythemes)
 library(lubridate)
 ```
 
-# Executive summery
+# Executive summary
+
+## The Questions
+
+**Are there dependencies betweeen the weather and  the sales?**
+
+I couldn't answer this question because i was running out of time.
+
+**Are there dependencies between the weather and different product sales?**
+
+I couldn't answer this question because i was running out of time.
+
+**Are there dependencies between the weather and customers?**
+
+No, i could not find any dependencies between the customers and the weather because customers are in severall clusters. So they don't care about the weather. But i found a dependency between the average money spend by customers and the weather. If the weather gets cold and wet the customers buy more superfood.
+
+## Data Wrangling
+
+I had lots of different data from excel sheets. So first of all i load them into rstudio and combined the different months of the 3 different types. After that i had tree different data frames. Because i changed the names of the offers on the website and some other things. I got serveral names for one product. So i decided to use the package stringr to replace the different names with the actual name. I did the same for the product numbers. I called numbers but in there are strings too. I got one problem with the brokkoli name. In the test appears the name twice although it is the same name. I tested the names and product numbers, so my data was almost ready for an analysis. Before i startet to analys the data i changed the date column with the lubridate package to get an equal date column for a join. I joined the weather data to the three different data frames by the date column. Now i was ready for the statistical analysis.
+
+## Statistical analysis
+
+### Kmeans with ggplot unscaled and 2d plot
+
+I started with the kmeans clustering like we did it in class with ggplot and a 2d plot. I clustered the data and added a column with the clusters to make a plot which shows us the clusters. The data wasn't scaled and the plot looked not really good. I tried this for all three data frames and got nothing good. The clusters weren't there and the points were on one line.
+
+### Factoextra package with PCA
+
+After that i was thinking:"There must be a better way to do that". So i decided to use the factoextra package witch we used in class too. Here i started with the principal component analysis because i wanted to find the components whitch cover most of the variance. So i could delete some of the attributes and maybe the clusters and the results are getting better. I used the PCA method with all numeric variables of the customer_weather data frame and looked on the eigenvalues and eigenvariances with a table and a plot. You could see that we cover around 80 % of the variance with only 4 dimensions and 86 % with 5 dimensions. After that i wanted to look deeper into it. I tried to find the variables witch hold most of the variance. For that i uses the variable plot with the dimension 1 and 2 and the corrolation plot with up to 5 dimensions. You saw that TXK, TNK, VPM, TMK, UPM and TGK explained most of the variance in dimensions 1 and there were mostly only in dimension 1. FX, FM, RSK, NM and PM were found in serveral dimensions and eplained so the second, the third and the fifth dimension. I decided here to use only the dimension 1 and 4. One because of the above-mentioned properties and 4 because thats the only numeric variable for the sales. In the end i plotted the bipolarplot witch shows us the direction and contribution of dimension 1 and 2 and all the customers who bought something on one day. You saw lots of groups of points. Each point was one customer and i concluded that the groups are the days because there the weather is equal and so they should only be differented by the amount of selling.
+
+### Factoesxtra package with clustering
+
+After i compleded the pca i started with the kmeans clustering again. Here i decided to do a clustering with all numeric variables and one were i build on the results out of the pca before. First i did the kmeans clustering with all numeric attributes. There i begun with the elbow method. It's used to find the optimal amount of clusters. There are serveral methods. I used the "gap_stat" method and concluded out of the plot that i should need 5 clusters. So i computed the kmeans clusters and visualized them with the "fviz_cluster" function. In the plot you saw 5 clusters. One of these clusters was an outlier. I looked up the cluster in the data frame and found out that one attribute has in some rows the number "-999". And i saw that this attribute is one of the attributes i decided to delete because of the pca. So again you see serveral groups of points. And again i concluded that each group must be one day and each point is one customer who bought something on this day. So the clusters are days were the weather is not so different. I mutated the clusters as a factor in a new column of the data frame and tried to find some plot or table with interresting informations. I could't find something and because of the time i had to continue. In the ende i decided to have a look on the average of each numeric attribute for the clusters. And you could see that the clusters are diiferent because the temperature is different. So we have 5 different average temperatures.
+
+In the second kmeans clustering i used the results out of the pca and decided to only use the attributes Gesamtbrutto, TXK, TNK, VPM, TMK, UPM and TGK. With the "fviz_nbclust" function with the "gap_stat" method i tried to find the optimal number of clusters for this case. The method said that i have to use only one cluster and i decided to use another method. This time i used the "wss" method and decided to use 4 clusters. And again i saw groups of points. But this time i had the feeling that this could be some better clustering. So i did the average messurement for the clusters and yes we got a result. We have 4 clusters:
+
+Cluster | avg spend money per customer | vapor pressur | avg days mean tmp | relative humidity |  days max air tmp in 2m | days min air tmp in 2m | days min tmp 5cm
+--------|------------------------------|---------------|-------------------|-------------------|-------------------------|------------------------|-----------------
+  1     |     3.17                     |     17.75     |       20.14       |        76.3       |           25.24         |          14.4          |    12.4
+  2     |     2.72                     |     12.34     |       14.71       |        74.6       |           19.64         |           9.6          |     7.5
+  3     |     3.60                     |     14.22     |       13.99       |        88.6       |           16.88         |          11.1          |     9.2
+  4     |     3.54                     |      9.41     |        7.10       |        92.5       |            9.34         |           4.0          |     1.9
+  
+We can see that if the humidity raises and the temperature falls the customers buy more superfood. Cluster 2 could be an outlier because i can remember that in the transition period my offers of different varieties wasn't that high. There could be a dependency between cold and wet weather and the total spend in superfood per customer. But it could also be a normal growth of my company and that the customers acept the producs more and use it more. To find out that we need more data from the whole year.
+
+## Statistical application
+
+After i finished the analysis the idea of an analysis aplication materilized in my brain. So i decided to build one. It should analyse the three different data frames automaticly how i analysed the first one by hand. It should have some methods to choose like the pca and the clustering and some options like the amount of clusters. So i started to program the first analysis into a interactive shiny app. I added some reactive chooseable options and three tabs for the three data frames. Then i tried to combine serveral reactive stuff but it doesn't worked out very well so build it up step by step for each data frame. It now can show us the pca and the clustering for all three data frames but it can't use the results of the pca analysis in the clustering. To fix that i have to spend more time into this. Also the app could have more options but again because of lack of time i choose only this simple features. I come here to an end and don't describe the results for the two other data frames because "NO TIME".
+
+## Reflextion
+
+It costs so much time that i could not analyse the other two data frames. So i only answered one of my questions. But i came to a result witch could be a dependency or not. I spend now around 20-25 hours to do the data wrangling, analyse one data frame and build some simple analyse application with simple features for all three data frames. If i spend more than that i easylie could build one good application for my company to analyse the data. Overall it was really fun to do some statistical analyse and the devil is in the detail. 
 
 
 
@@ -31,7 +82,9 @@ I will add my customer data to the weather data and i will try to do a pca (pric
 
 ## Questions
 
-
+**Are there dependencies betweeen the weather and  the sales?**\
+**Are there dependencies between the weather and different product sales?**\
+**Are there dependencies between the weather and customers?**\
 
 # Data Wrangling
 
@@ -442,6 +495,15 @@ table1 <- df1 %>%
 DT::datatable(table1)
 ```
  
+ Cluster | avg spend money per customer | vapor pressur | avg days mean tmp | relative humidity |  days max air tmp in 2m | days min air tmp in 2m | days min tmp 5cm
+--------|------------------------------|---------------|-------------------|-------------------|-------------------------|------------------------|-----------------
+  1     |     3.17                     |     17.75     |       20.14       |        76.3       |           25.24         |          14.4          |    12.4
+  2     |     2.72                     |     12.34     |       14.71       |        74.6       |           19.64         |           9.6          |     7.5
+  3     |     3.60                     |     14.22     |       13.99       |        88.6       |           16.88         |          11.1          |     9.2
+  4     |     3.54                     |      9.41     |        7.10       |        92.5       |            9.34         |           4.0          |     1.9
+  
+We can see that if the humidity raises and the temperature falls the customers buy more superfood. Cluster 2 could be an outlier because i can remember that in the transition period my offers of different varieties wasn't that high. So it could influenced the total spend per customer. There could be a dependency between cold and wet weather and the total spend in superfood per customer.
+ 
  
 # Statistical analysis app
 
@@ -767,4 +829,4 @@ options = list(height = 1500)
 
 ## Reflection
 
-The application is nice and it shows you easiely the results of this two methods. Now i could implement some more methods and options. For example some different elbow methods, different clustering, the number of iterations or a complete new method like the linear regression. However, it tooks some hours to type this code. I would be really happy if i could get the code smaller and more compressed but that doesn't worked out well. You can overview the results and see that there some variables with i could delete because there variance is really low. To see some informations out of the clustering we have to do some more plots with different questionaries. The other two data sets had different cluster and maybe there are some good insights in the clustering. To get relevant information out of unsorted and not explored data you always have to offer some time to find the right questions and to get the results. I think if i offer one or two more weeks into this project i could find some interresting informations.
+The application is nice and it shows you easiely the results of this two methods. Now i could implement some more methods and options. For example some different elbow methods, different clustering, the number of iterations or a complete new method like the linear regression. However, it tooks some hours to type this code. I would be really happy if i could get the code smaller and more compressed but that doesn't worked out well. You can overview the results and see that there some variables witch i could delete because there variance is really low. To see some informations out of the clustering we have to do some more plots with different questionaries. The other two data sets had different cluster and maybe there are some good insights in the clustering. To get relevant information out of unsorted and not explored data you always have to offer some time to find the right questions and to get the results. I think if i offer one or two more weeks into this project i could find some interresting informations.
