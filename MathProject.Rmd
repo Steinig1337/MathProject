@@ -445,10 +445,12 @@ df1 %>%
  I couldn't find some good plot with this additional cluster information.
  
 ```{r}
-df1 %>%
-  group_by(Name, Vorname) %>%
-  summarise(ausgegeben = sum(Gesamtbrutto)) %>%
-  arrange(desc(ausgegeben))
+
+# doesn't work with the anonymous data set
+# df1 %>%
+#   group_by(Name, Vorname) %>%
+#   summarise(ausgegeben = sum(Gesamtbrutto)) %>%
+#   arrange(desc(ausgegeben))
 ```
  
  Now i try to look at the average of the attributes of a cluster. Maybe we can define the clusters.
