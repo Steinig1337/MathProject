@@ -70,7 +70,7 @@ We can see that if the humidity raises and the temperature falls the customers b
 
 After i finished the analysis the idea of an analysis aplication materilized in my brain. So i decided to build one. It should analyse the three different data frames automaticly how i analysed the first one by hand. It should have some methods to choose like the pca and the clustering and some options like the amount of clusters. So i started to program the first analysis into a interactive shiny app. I added some reactive chooseable options and three tabs for the three data frames. Then i tried to combine serveral reactive stuff but it doesn't worked out very well so build it up step by step for each data frame. It now can show us the pca and the clustering for all three data frames but it can't use the results of the pca analysis in the clustering. To fix that i have to spend more time into this. Also the app could have more options but again because of lack of time i choose only this simple features. I come here to an end and don't describe the results for the two other data frames because "NO TIME".
 
-## Reflextion
+## Reflection
 
 It costs so much time that i could not analyse the other two data frames. So i only answered one of my questions. But i came to a result witch could be a dependency or not. I spend now around 20-25 hours to do the data wrangling, analyse one data frame and build some simple analyse application with simple features for all three data frames. If i spend more than that i easylie could build one good application for my company to analyse the data. Overall it was really fun to do some statistical analyse and the devil is in the detail. 
 
